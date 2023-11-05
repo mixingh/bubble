@@ -1,0 +1,451 @@
+definitions:
+  models.ErrorResponse:
+    properties:
+      error: {}
+    type: object
+  models.SuccessResponse:
+    properties:
+      data: {}
+      msg:
+        type: string
+    type: object
+  models.Todo:
+    properties:
+      status:
+        type: boolean
+      title:
+        description: |-
+          gorm.Model
+          UID    int    `json:"uid"`
+        type: string
+    type: object
+  models.User:
+    properties:
+      password:
+        type: string
+      username:
+        description: |-
+          gorm.Model
+          UID      uint   `json:"uid" gorm:"uniqueIndex"`
+        type: string
+    type: object
+host: 127.0.0.1:9000
+info:
+  contact:
+    email: support@swagger.io
+    name: riverk
+    url: http://www.swagger.io/support
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: bubble便签
+  version: "1.1"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: 用户使用提供的 JSON 数据进行登录，验证用户名和密码，成功则生成带有用户信息的 JWT Token。
+      operationId: login
+      parameters:
+      - description: 包含用户名和密码的 JSON 对象
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功登录的响应
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 无效的 JSON 数据
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 用户名或密码错误的错误响应
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误的错误响应
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 用户登录
+      tags:
+      - Start
+  /signout:
+    post:
+      consumes:
+      - application/json
+      description: 根据请求中的令牌，将用户标记为登出状态，并加入黑名单。
+      operationId: sign-out
+      parameters:
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功登出
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 未提供令牌
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 用户登出
+      tags:
+      - Start
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: 用户使用提供的 JSON 数据进行注册，成功则返回用户信息。
+      operationId: signup
+      parameters:
+      - description: 包含用户名和密码的 JSON 对象
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 注册成功的响应
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 无效的 JSON 数据
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: 用户名或密码已存在的错误响应
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误的错误响应
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 用户注册
+      tags:
+      - Start
+  /todo:
+    get:
+      description: 查询 todo 表中的所有数据，并返回待办事项列表。
+      operationId: get-todo-list
+      parameters:
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取待办事项列表
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 无效的请求
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取所有待办事项
+      tags:
+      - Todo
+    post:
+      consumes:
+      - application/json
+      description: 接收前端页面提交的待办事项数据，并将其存储到数据库中。
+      operationId: create-todo
+      parameters:
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 待办事项的详细信息
+        in: body
+        name: todo
+        required: true
+        schema:
+          $ref: '#/definitions/models.Todo'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 成功创建待办事项
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 请求中包含无效的 JSON 数据
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 创建待办事项
+      tags:
+      - Todo
+  /todo/{id}:
+    delete:
+      description: 根据待办事项ID删除待办事项记录。
+      operationId: delete-todo
+      parameters:
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 待办事项ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功删除待办事项
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 无效的ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 删除待办事项
+      tags:
+      - Todo
+    put:
+      consumes:
+      - application/json
+      description: 根据待办事项ID更新待办事项记录，并返回更新后的待办事项信息。
+      operationId: update-todo
+      parameters:
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 待办事项ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 待办事项的更新信息
+        in: body
+        name: update
+        required: true
+        schema:
+          $ref: '#/definitions/models.Todo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功更新待办事项
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 无效的ID或JSON数据
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: 未找到匹配记录
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 更新待办事项
+      tags:
+      - Todo
+  /todo/{uid}:
+    get:
+      description: 根据用户ID查询特定用户的待办事项，并返回待办事项列表。
+      operationId: get-todo
+      parameters:
+      - description: 用户UID
+        in: path
+        name: uid
+        required: true
+        type: integer
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取待办事项列表
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 无效的ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: 未找到匹配记录
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取特定用户的待办事项列表
+      tags:
+      - Todo
+  /user/{uid}:
+    delete:
+      description: 根据用户ID删除用户记录。
+      operationId: delete-user
+      parameters:
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 用户ID
+        in: path
+        name: uid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功删除特定用户
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 无效的UID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 删除特定用户
+      tags:
+      - User
+    get:
+      description: 根据用户ID查询特定用户信息，并返回用户信息。
+      operationId: get-user
+      parameters:
+      - description: 用户ID
+        in: path
+        name: uid
+        required: true
+        type: integer
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取特定用户信息
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 无效的UID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: 未找到匹配记录
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取特定用户信息
+      tags:
+      - User
+    put:
+      consumes:
+      - application/json
+      description: 根据用户ID更新用户信息，并返回更新后的用户信息。
+      operationId: update-user
+      parameters:
+      - description: 用户ID
+        in: path
+        name: uid
+        required: true
+        type: integer
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 用户的更新信息
+        in: body
+        name: update
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功更新特定用户信息
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: 无效的UID或JSON数据
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 更新特定用户信息
+      tags:
+      - User
+  /user/list:
+    get:
+      description: 查询所有用户并返回用户列表。
+      operationId: get-user-list
+      parameters:
+      - description: 用户身份令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取用户列表
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取所有用户列表
+      tags:
+      - User
+swagger: "2.0"
