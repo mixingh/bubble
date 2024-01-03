@@ -56,7 +56,7 @@ func main() {
 	// 启动定期清理任务
 	go controller.CleanUpExpiredTokens()
 
-	if err := r.Run(fmt.Sprintf("127.0.0.1:%d", setting.Conf.Port)); err != nil {
+	if err := r.Run(fmt.Sprintf(":%d", setting.Conf.Port)); err != nil {
 		fmt.Printf("server startup failed, err:%v\n", err)
 	}
 	//swagger文档接口

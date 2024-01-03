@@ -6,8 +6,9 @@ import (
 	_ "bubble/docs"
 	"bubble/setting"
 	"github.com/gin-gonic/gin"
-	"github.com/swaggo/files"
-	"github.com/swaggo/gin-swagger"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"net/http"
 )
 
 func SetupRouter() *gin.Engine {
@@ -27,6 +28,7 @@ func SetupRouter() *gin.Engine {
 	r.GET("/", controller.IndexHandler)
 
 	r.POST("/login", controller.LoginHandler)
+	r.GET("/checkLogin", controller.AuthenticationMiddleware(), func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "check success"}) })
 
 	r.POST("/signup", controller.SignUp)
 
@@ -51,6 +53,8 @@ func SetupRouter() *gin.Engine {
 		v1Group.GET("/user", controller.GetUserList)
 
 		v1Group.GET("/user/:uid", controller.GetUser)
+		//通过cookie获取
+		v1Group.GET("/user/user-info", controller.UserInfoHandler)
 
 		v1Group.PUT("/user/:uid", controller.UpdateAUser)
 

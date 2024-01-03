@@ -75,11 +75,7 @@ func SignUp(c *gin.Context) {
 			return
 		}
 	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"msg":  "signup success",
-		"data": user,
-	})
+	c.JSON(http.StatusCreated, gin.H{"msg": "signup success", "data": user})
 }
 
 // 生成4位随机数作为用户uid
@@ -120,27 +116,16 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 	// 验证成功，使用jwt中间件生成有效期为1小时的token
-	expirationTime := time.Now().Add(1 * time.Hour)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"uid":      existingUser.UID,
-		"username": existingUser.Username,
-		"exp":      expirationTime.Unix(),
-	})
+	expirationTime := time.Now().Add(30 * time.Minute)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"uid": existingUser.UID, "username": existingUser.Username, "exp": expirationTime.Unix()})
 	signedString, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// 登录成功，将 token 发送给前端
-	c.JSON(http.StatusOK, gin.H{
-		"msg":   "signin success",
-		"token": signedString,
-		"data": gin.H{
-			"username": existingUser.Username,
-			"uid":      existingUser.UID,
-		},
-	})
-
+	//将 JWT token 存储到 Cookie 中
+	setTokenCookie(c, signedString)
+	c.JSON(http.StatusOK, gin.H{"msg": "signin success", "data": gin.H{"username": existingUser.Username, "uid": existingUser.UID}})
 }
 
 // SignOut 处理用户登出的函数。
@@ -157,17 +142,23 @@ func LoginHandler(c *gin.Context) {
 // @Failure 500 {object} models.ErrorResponse "服务器内部错误"
 // @Router /signout [post]
 func SignOut(c *gin.Context) {
-	// 获取令牌，例如从请求头中提取
-	token := c.GetHeader("token")
-
+	// 从请求的Cookie中获取JWT令牌
+	cookie, err := c.Request.Cookie("jwt")
+	if err != nil {
+		// 如果出错，返回错误响应，例如Cookie不存在
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No token found"})
+		return
+	}
+	// 获取JWT令牌
+	token := cookie.Value
 	// 将令牌添加到黑名单
-	err := AddTokenToBlacklist(token)
+	err = AddTokenToBlacklist(token)
 	if err != nil {
 		// 处理错误，例如返回错误响应
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sign out"})
 		return
 	}
-	//// 记录一条日志，表示令牌已成功添加到黑名单
+	// 记录一条日志，表示令牌已成功添加到黑名单
 	//log.Printf("Token added to blacklist: %s\n", token)
 	// 返回成功响应
 	c.JSON(http.StatusOK, gin.H{"msg": "Successfully signed out"})
@@ -212,13 +203,23 @@ func CleanUpExpiredTokens() {
 	}
 }
 
+// 设置cookie
+func setTokenCookie(c *gin.Context, signedString string) {
+	// 超时时间设置为30分钟
+	maxAge := 30 * 60
+	// 设置cookie
+
+	c.SetCookie("jwt", signedString, maxAge, "/", "43.155.87.223", false, true)
+
+}
+
 // AuthenticationMiddleware jwt中间件验证
 func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("token")
-		if tokenString == "" {
+		tokenString, err := c.Cookie("jwt")
+		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Authorization header not provided",
+				"error": "JWT cookie not provided",
 			})
 			c.Abort()
 			return
@@ -260,6 +261,7 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 		// 将用户信息设置到上下文中
 		claims := token.Claims.(jwt.MapClaims)
 		c.Set("uid", int(claims["uid"].(float64)))
+		c.Set("username", claims["username"].(string))
 		//fmt.Println("uid", int(claims["uid"].(float64)))
 		c.Next()
 	}
@@ -490,6 +492,23 @@ func GetUser(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, users)
+}
+
+func UserInfoHandler(c *gin.Context) {
+	// 从Gin的context中获取用户信息
+	username, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, "未授权")
+		return
+	}
+
+	uid, exists := c.Get("uid")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, "未授权")
+		return
+	}
+	// 返回用户信息
+	c.JSON(http.StatusOK, gin.H{"username": username, "uid": uid})
 }
 
 // @Summary 更新特定用户信息

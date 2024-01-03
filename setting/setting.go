@@ -1,8 +1,6 @@
 package setting
 
-import (
-	"gopkg.in/ini.v1"
-)
+import "gopkg.in/ini.v1"
 
 var Conf = new(AppConfig)
 
